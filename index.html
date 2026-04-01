@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>13병동 간호일지</title>
+<style>
+/* ===== 기본 리셋 & 변수 ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --blue: #1a56a0;
+  --blue-light: #e8f0fb;
+  --border: #b0b8c8;
+  --bg: #f4f6fb;
+  --white: #fff;
+  --text: #1a1a2e;
+  --red: #c0392b;
+  --green: #1a7a3c;
+  --gray: #6b7280;
+  --shadow: 0 2px 8px rgba(0,0,0,.12);
+  --radius: 8px;
+}
+body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+button { cursor: pointer; }
+
+/* ===== 화면 전용 레이아웃 ===== */
+.screen-only { }
+.page-header {
+  background: var(--blue); color: var(--white);
+  padding: 12px 20px; display: flex; align-items: center; gap: 12px;
+  flex-wrap: wrap; box-shadow: var(--shadow);
+}
+.page-header h1 { font-size: 18px; font-weight: 700; flex: 1; min-width: 180px; }
+.page-header .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* 탭 */
+.tabs { display: flex; background: var(--white); border-bottom: 2px solid var(--blue); overflow-x: auto; }
+.tab-btn {
+  padding: 10px 20px; border: none; background: none;
+  font-size: 14px; color: var(--gray); font-weight: 600; white-space: nowrap;
+  border-bottom: 3px solid transparent; margin-bottom: -2px;
+}
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+.tab-btn:hover { background: var(--blue-light); }
+.tab-content { display: none; padding: 16px; }
+.tab-content.active { display: block; }
+
+/* 버튼 스타일 */
+.btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 600;
+  border: none; transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn-primary { background: var(--blue); color: var(--white); }
+.btn-success { background: var(--green); color: var(--white); }
+.btn-danger { background: var(--red); color: var(--white); }
+.btn-secondary { background: #6b7280; color: var(--white); }
+.btn-outline { background: var(--white); color: var(--blue); border: 1.5px solid var(--blue); }
+.btn-sm { padding: 3px 8px; font-size: 12px; }
+.btn-print { background: #ff9800; color: var(--white); }
+
+/* 폼 */
+.form-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;
+  background: var(--white); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px;
+}
+.form-grid.full { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; font-weight: 600; color: var(--gray); }
+.form-group input, .form-group select, .form-group textarea {
+  border: 1px solid var(--border); border-radius: 4px; padding: 6px 8px;
+  font-size: 13px; font-family: inherit;
+  outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--blue); box-shadow: 0 0 0 2px rgba(26,86,160,.15);
+}
+.form-group textarea { resize: vertical; min-height: 60px; }
+.form-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+/* 카드 */
+.card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 14px; font-weight: 700; color: var(--blue);
+  margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+}
+
+/* 환자 테이블 */
+.pt-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pt-table th {
+  background: var(--blue); color: var(--white);
+  padding: 6px 8px; text-align: center; white-space: nowrap;
+}
+.pt-table td {
+  border: 1px solid var(--border); padding: 5px 7px; text-align: center;
+  white-space: nowrap;
+}
+.pt-table tr:nth-child(even) td { background: #f8f9ff; }
+.pt-table tr:hover td { background: var(--blue-light); }
+.badge {
+  display: inline-block; padding: 2px 6px; border-radius: 10px;
+  font-size: 11px; font-weight: 600;
+}
+.badge-new { background: #ffeeba; color: #856404; }
+.badge-readmit { background: #d4edda; color: #155724; }
+.badge-stay { background: #cce5ff; color: #004085; }
+.badge-discharged { background: #f8d7da; color: #721c24; }
+
+/* 날짜 헤더 */
+.date-header-bar {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 14px; margin-bottom: 12px;
+}
+.date-display { font-size: 16px; font-weight: 700; color: var(--blue); }
+input[type=date] { border: 1px solid var(--border); border-radius: 4px; padding: 5px 8px; font-size: 13px; }
+
+/* ===== 간호일지 인쇄 영역 ===== */
+#report-area {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  font-size: 12px;
+}
+.report-title {
+  text-align: center; font-size: 20px; font-weight: 700;
+  letter-spacing: 4px; margin-bottom: 4px;
+}
+.report-date {
+  text-align: right; font-size: 13px; font-weight: 600; margin-bottom: 8px;
+}
+.report-ward-label {
+  font-size: 13px; font-weight: 700; margin-bottom: 6px;
+}
+
+/* 집계 표 */
+.summary-table {
+  width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px;
+}
+.summary-table th, .summary-table td {
+  border: 1.5px solid #888; padding: 4px 6px;
+  text-align: center; white-space: nowrap;
+}
+.summary-table thead th {
+  background: #d0d8f0; font-weight: 700; font-size: 11px;
+}
+.summary-table .ward-label { background: #e8eeff; font-weight: 700; }
+.summary-table .total-row td { background: #f0f0e8; font-weight: 700; }
+
+/* 입퇴원 목록 표 */
+.detail-section { margin-bottom: 12px; }
+.detail-section h3 {
+  font-size: 13px; font-weight: 700; background: #dde6f5;
+  padding: 4px 8px; border: 1px solid #aab; margin-bottom: 0;
+}
+.detail-table {
+  width: 100%; border-collapse: collapse; font-size: 11px;
+}
+.detail-table th {
+  background: #e8f0fb; border: 1px solid #aab;
+  padding: 4px 6px; text-align: center; font-weight: 700;
+}
+.detail-table td {
+  border: 1px solid #ccd; padding: 4px 6px; text-align: center;
+}
+.detail-table tr:nth-child(even) td { background: #fafbff; }
+.empty-row td { color: var(--gray); font-style: italic; }
+
+/* 특이사항 */
+.notes-section { margin-bottom: 12px; }
+.notes-section h3 {
+  font-size: 13px; font-weight: 700; background: #dde6f5;
+  padding: 4px 8px; border: 1px solid #aab; margin-bottom: 0;
+}
+.notes-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.notes-table td { border: 1px solid #aab; padding: 6px 8px; vertical-align: top; }
+.notes-table .label { background: #e8f0fb; font-weight: 700; width: 80px; text-align: center; }
+.notes-content { min-height: 50px; white-space: pre-wrap; }
+.notes-input-area {
+  width: 100%; border: none; outline: none;
+  resize: none; min-height: 60px; font-family: inherit; font-size: 12px;
+  background: transparent;
+}
+
+/* 알림 */
+.alert {
+  padding: 8px 12px; border-radius: 4px; margin-bottom: 10px;
+  font-size: 13px; font-weight: 500;
+}
+.alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+/* 모달 */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.5); z-index: 1000;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--white); border-radius: var(--radius);
+  padding: 20px; max-width: 560px; width: calc(100% - 32px);
+  max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.25);
+}
+.modal h2 { font-size: 16px; font-weight: 700; color: var(--blue); margin-bottom: 14px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; }
+
+/* 필터 바 */
+.filter-bar {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.filter-bar input, .filter-bar select {
+  border: 1px solid var(--border); border-radius: 4px;
+  padding: 5px 8px; font-size: 13px;
+}
+
+/* 섹션 구분 */
+.section-divider {
+  border: none; border-top: 2px solid var(--blue-light);
+  margin: 14px 0;
+}
+
+/* ===== 인쇄 스타일 ===== */
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body { background: white; font-size: 11px; }
+  .screen-only, .no-print, .tabs, .tab-btn,
+  .page-header, .date-header-bar .btn,
+  .filter-bar, .card:not(#report-card), .modal-overlay { display: none !important; }
+  .tab-content { display: block !important; padding: 0 !important; }
+  #tab-report { display: block !important; }
+  #tab-patients, #tab-settings { display: none !important; }
+  #report-area {
+    border: none; padding: 0; box-shadow: none;
+    font-size: 11px;
+  }
+  .notes-input-area { border: none; }
+  .btn-print { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* 반응형 */
+@media (max-width: 600px) {
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .summary-table { font-size: 10px; }
+  .summary-table th, .summary-table td { padding: 2px 3px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 페이지 헤더 ===== -->
+<div class="page-header screen-only">
+  <h1>🏥 13병동 간호일지</h1>
+  <div class="btn-group">
+    <button class="btn btn-print" onclick="window.print()">🖨️ 인쇄/PDF</button>
+    <button class="btn btn-outline" style="color:#fff;border-color:#fff" onclick="exportData()">📤 내보내기</button>
+    <button class="btn btn-outline" style="color:#fff;border-color:#fff" onclick="document.getElementById('importFile').click()">📥 가져오기</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<!-- ===== 탭 ===== -->
+<div class="tabs screen-only">
+  <button class="tab-btn active" onclick="showTab('report')">📋 간호일지</button>
+  <button class="tab-btn" onclick="showTab('patients')">👤 환자 관리</button>
+  <button class="tab-btn" onclick="showTab('settings')">⚙️ 설정</button>
+</div>
+
+<!-- ===== 탭1: 간호일지 ===== -->
+<div id="tab-report" class="tab-content active">
+
+  <!-- 날짜 선택 바 (화면 전용) -->
+  <div class="date-header-bar screen-only">
+    <label style="font-weight:600">날짜:</label>
+    <input type="date" id="datePickerInput" onchange="changeDate(this.value)">
+    <span class="date-display" id="dateDisplayScreen"></span>
+    <button class="btn btn-sm btn-primary" onclick="setToday()">오늘</button>
+  </div>
+
+  <div id="report-card">
+  <div id="report-area">
+
+    <!-- 보고서 제목 & 날짜 -->
+    <div class="report-title">간 호 일 지</div>
+    <div class="report-date" id="reportDateDisplay"></div>
+    <div class="report-ward-label">13병동(13W / 14W / 15W)</div>
+
+    <!-- 집계 표 -->
+    <table class="summary-table" id="summaryTable">
+      <thead>
+        <tr>
+          <th>병동</th>
+          <th>병상수</th>
+          <th>입원<br>(신환)</th>
+          <th>입원<br>(재입원)</th>
+          <th>퇴원</th>
+          <th>VVIP<br>(1)</th>
+          <th>특1인<br>(3)</th>
+          <th>1인<br>(15)</th>
+          <th>2인<br>(4)</th>
+          <th>3인<br>(6)</th>
+          <th>4인<br>(12)</th>
+          <th>5인<br>(30)</th>
+          <th>재원수</th>
+        </tr>
+      </thead>
+      <tbody id="summaryBody">
+        <!-- JS로 채움 -->
+      </tbody>
+    </table>
+
+    <!-- 입원 환자 목록 -->
+    <div class="detail-section">
+      <h3>▶ 입원 환자</h3>
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th>병실</th>
+            <th>환자명</th>
+            <th>성별/나이</th>
+            <th>진단명</th>
+            <th>신환/치료병원</th>
+            <th>진료과</th>
+            <th>구분</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody id="admitListBody">
+          <tr class="empty-row"><td colspan="8">입원 환자 없음</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 퇴원 환자 목록 -->
+    <div class="detail-section">
+      <h3>▶ 퇴원 환자</h3>
+      <table class="detail-table">
+        <thead>
+          <tr>
+            <th>병실</th>
+            <th>환자명</th>
+            <th>성별/나이</th>
+            <th>진단명</th>
+            <th>신환/치료병원</th>
+            <th>진료과</th>
+            <th>비고</th>
+          </tr>
+        </thead>
+        <tbody id="dischargeListBody">
+          <tr class="empty-row"><td colspan="7">퇴원 환자 없음</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 특이사항 -->
+    <div class="notes-section">
+      <h3>▶ 특이사항</h3>
+      <table class="notes-table">
+        <tbody>
+          <tr>
+            <td class="label">Day</td>
+            <td>
+              <div class="notes-content screen-only" style="display:none" id="dayNoteDisplay"></div>
+              <textarea class="notes-input-area screen-only" id="dayNoteInput"
+                placeholder="Day 특이사항 입력 (병실이동은 자동 표시됩니다)"
+                oninput="saveNoteDebounced('day', this.value)"></textarea>
+              <div class="notes-content print-only" id="dayNotePrint"></div>
+            </td>
+          </tr>
+          <tr>
+            <td class="label">Evening</td>
+            <td>
+              <div class="notes-content screen-only" style="display:none" id="eveningNoteDisplay"></div>
+              <textarea class="notes-input-area screen-only" id="eveningNoteInput"
+                placeholder="Evening 특이사항 입력"
+                oninput="saveNoteDebounced('evening', this.value)"></textarea>
+              <div class="notes-content print-only" id="eveningNotePrint"></div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- #report-area -->
+  </div><!-- #report-card -->
+</div>
+
+<!-- ===== 탭2: 환자 관리 ===== -->
+<div id="tab-patients" class="tab-content screen-only">
+
+  <!-- 입원 등록 폼 -->
+  <div class="card">
+    <div class="card-title">➕ 환자 입원 등록</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>병실번호 *</label>
+        <select id="f_room">
+          <option value="">— 병실 선택 —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>환자명 *</label>
+        <input type="text" id="f_name" placeholder="예: 홍길동">
+      </div>
+      <div class="form-group">
+        <label>성별</label>
+        <select id="f_gender">
+          <option value="F">여(F)</option>
+          <option value="M">남(M)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>나이</label>
+        <input type="number" id="f_age" min="0" max="130" placeholder="예: 48">
+      </div>
+      <div class="form-group">
+        <label>진단명</label>
+        <input type="text" id="f_diagnosis" placeholder="예: LT유방암">
+      </div>
+      <div class="form-group">
+        <label>신환/치료 병원</label>
+        <input type="text" id="f_hospital" placeholder="예: 제/삼성">
+      </div>
+      <div class="form-group">
+        <label>진료과</label>
+        <input type="text" id="f_dept" placeholder="예: PS">
+      </div>
+      <div class="form-group">
+        <label>입원 구분</label>
+        <select id="f_admitType">
+          <option value="신환">신환</option>
+          <option value="재입원">재입원</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>입원일 *</label>
+        <input type="date" id="f_admitDate">
+      </div>
+      <div class="form-group" style="grid-column: span 2">
+        <label>비고</label>
+        <input type="text" id="f_notes" placeholder="기타 메모">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="admitPatient()">입원 등록</button>
+      <button class="btn btn-secondary" onclick="clearAdmitForm()">초기화</button>
+    </div>
+    <div id="admitAlert" style="margin-top:8px"></div>
+  </div>
+
+  <!-- 필터 + 환자 목록 -->
+  <div class="card">
+    <div class="card-title">👥 재원 환자 목록</div>
+    <div class="filter-bar">
+      <input type="text" id="filterName" placeholder="환자명 검색" oninput="renderPatientList()">
+      <select id="filterWard" onchange="renderPatientList()">
+        <option value="">전체 병동</option>
+        <option value="13W">13W</option>
+        <option value="14W">14W</option>
+        <option value="15W">15W</option>
+      </select>
+      <select id="filterStatus" onchange="renderPatientList()">
+        <option value="재원">재원 중</option>
+        <option value="퇴원">퇴원</option>
+        <option value="">전체</option>
+      </select>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="pt-table" id="patientTable">
+        <thead>
+          <tr>
+            <th>병실</th>
+            <th>병동</th>
+            <th>환자명</th>
+            <th>성별/나이</th>
+            <th>진단명</th>
+            <th>치료병원</th>
+            <th>진료과</th>
+            <th>구분</th>
+            <th>입원일</th>
+            <th>상태</th>
+            <th>작업</th>
+          </tr>
+        </thead>
+        <tbody id="patientListBody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 병실 이동 -->
+  <div class="card">
+    <div class="card-title">🚚 병실 이동 처리</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>이동할 환자</label>
+        <select id="t_patient">
+          <option value="">— 환자 선택 —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>이동할 병실</label>
+        <select id="t_toRoom">
+          <option value="">— 병실 선택 —</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>이동 메모 (특이사항에 추가)</label>
+        <input type="text" id="t_memo" placeholder="예: 환자 요청으로 이동">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="transferPatient()">병실 이동</button>
+    </div>
+    <div id="transferAlert" style="margin-top:8px"></div>
+  </div>
+
+</div>
+
+<!-- ===== 탭3: 설정 ===== -->
+<div id="tab-settings" class="tab-content screen-only">
+  <div class="card">
+    <div class="card-title">💾 데이터 관리</div>
+    <p style="margin-bottom:10px;color:var(--gray)">데이터는 브라우저 LocalStorage에 자동 저장됩니다.</p>
+    <div class="form-actions" style="flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="exportData()">📤 전체 데이터 내보내기 (JSON)</button>
+      <button class="btn btn-outline" onclick="document.getElementById('importFile2').click()">📥 데이터 가져오기 (JSON)</button>
+      <input type="file" id="importFile2" accept=".json" style="display:none" onchange="importData(event)">
+      <button class="btn btn-danger" onclick="confirmClearAll()">🗑️ 전체 데이터 삭제</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">ℹ️ 병실 배치 정보</div>
+    <div style="overflow-x:auto">
+    <table class="pt-table">
+      <thead>
+        <tr><th>병실번호</th><th>병실유형</th><th>병동</th><th>정원</th></tr>
+      </thead>
+      <tbody id="roomInfoBody"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 모달: 퇴원 처리 ===== -->
+<div class="modal-overlay" id="dischargeModal">
+  <div class="modal">
+    <h2>🏠 퇴원 처리</h2>
+    <input type="hidden" id="dm_patientId">
+    <p id="dm_patientInfo" style="margin-bottom:12px;font-weight:600"></p>
+    <div class="form-group">
+      <label>퇴원일</label>
+      <input type="date" id="dm_dischargeDate">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="confirmDischarge()">퇴원 처리</button>
+      <button class="btn btn-secondary" onclick="closeModal('dischargeModal')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 모달: 환자 수정 ===== -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>✏️ 환자 정보 수정</h2>
+    <input type="hidden" id="em_id">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>병실번호</label>
+        <select id="em_room"></select>
+      </div>
+      <div class="form-group">
+        <label>환자명</label>
+        <input type="text" id="em_name">
+      </div>
+      <div class="form-group">
+        <label>성별</label>
+        <select id="em_gender">
+          <option value="F">여(F)</option>
+          <option value="M">남(M)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>나이</label>
+        <input type="number" id="em_age" min="0" max="130">
+      </div>
+      <div class="form-group">
+        <label>진단명</label>
+        <input type="text" id="em_diagnosis">
+      </div>
+      <div class="form-group">
+        <label>치료병원</label>
+        <input type="text" id="em_hospital">
+      </div>
+      <div class="form-group">
+        <label>진료과</label>
+        <input type="text" id="em_dept">
+      </div>
+      <div class="form-group">
+        <label>입원 구분</label>
+        <select id="em_admitType">
+          <option value="신환">신환</option>
+          <option value="재입원">재입원</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>입원일</label>
+        <input type="date" id="em_admitDate">
+      </div>
+      <div class="form-group" style="grid-column:span 2">
+        <label>비고</label>
+        <input type="text" id="em_notes">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="saveEdit()">저장</button>
+      <button class="btn btn-secondary" onclick="closeModal('editModal')">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+/* ====================================================
+   1. 데이터 상수 (병실 배치)
+   ==================================================== */
+const ROOM_DATA = {
+  '1501': { type: 'VVIP',   ward: '15W', capacity: 1 },
+  '1412': { type: '특1인실', ward: '14W', capacity: 1 },
+  '1413': { type: '특1인실', ward: '14W', capacity: 1 },
+  '1415': { type: '특1인실', ward: '14W', capacity: 1 },
+  '1401': { type: '1인실',  ward: '14W', capacity: 1 },
+  '1402': { type: '1인실',  ward: '14W', capacity: 1 },
+  '1403': { type: '1인실',  ward: '14W', capacity: 1 },
+  '1404': { type: '1인실',  ward: '14W', capacity: 1 },
+  '1405': { type: '1인실',  ward: '14W', capacity: 1 },
+  '1406': { type: '1인실',  ward: '14W', capacity: 1 },
+  '1407': { type: '1인실',  ward: '14W', capacity: 1 },
+  '1408': { type: '1인실',  ward: '14W', capacity: 1 },
+  '1503': { type: '1인실',  ward: '15W', capacity: 1 },
+  '1504': { type: '1인실',  ward: '15W', capacity: 1 },
+  '1505': { type: '1인실',  ward: '15W', capacity: 1 },
+  '1506': { type: '1인실',  ward: '15W', capacity: 1 },
+  '1507': { type: '1인실',  ward: '15W', capacity: 1 },
+  '1508': { type: '1인실',  ward: '15W', capacity: 1 },
+  '1509': { type: '1인실',  ward: '15W', capacity: 1 },
+  '1510': { type: '1인실',  ward: '15W', capacity: 1 },
+  '1303': { type: '2인실',  ward: '13W', capacity: 2 },
+  '1502': { type: '2인실',  ward: '15W', capacity: 2 },
+  '1410': { type: '3인실',  ward: '14W', capacity: 3 },
+  '1411': { type: '3인실',  ward: '14W', capacity: 3 },
+  '1301': { type: '4인실',  ward: '13W', capacity: 4 },
+  '1302': { type: '4인실',  ward: '13W', capacity: 4 },
+  '1304': { type: '4인실',  ward: '13W', capacity: 4 },
+  '1305': { type: '5인실',  ward: '13W', capacity: 5 },
+  '1306': { type: '5인실',  ward: '13W', capacity: 5 },
+  '1307': { type: '5인실',  ward: '13W', capacity: 5 },
+  '1308': { type: '5인실',  ward: '13W', capacity: 5 },
+  '1309': { type: '5인실',  ward: '13W', capacity: 5 },
+  '1409': { type: '5인실',  ward: '14W', capacity: 5 },
+};
+const SORTED_ROOMS = Object.keys(ROOM_DATA).sort();
+const WARD_BEDS = { '13W': 39, '14W': 22, '15W': 10 };
+const WARDS = ['13W', '14W', '15W'];
+const ROOM_TYPES = ['VVIP', '특1인실', '1인실', '2인실', '3인실', '4인실', '5인실'];
+
+/* ====================================================
+   2. 앱 상태
+   ==================================================== */
+let state = {
+  currentDate: todayStr(),
+  patients: [],       // 모든 환자 기록
+  dailyData: {}       // date -> { dayNote, eveningNote, transfers: [{name,fromRoom,toRoom}] }
+};
+
+let _noteTimer = null;
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+/* ====================================================
+   3. LocalStorage
+   ==================================================== */
+function saveState() {
+  try { localStorage.setItem('nursingApp_v2', JSON.stringify(state)); } catch(e) {}
+}
+function loadState() {
+  try {
+    const s = localStorage.getItem('nursingApp_v2');
+    if (s) state = JSON.parse(s);
+  } catch(e) {}
+}
+function getDailyData(date) {
+  if (!state.dailyData[date]) state.dailyData[date] = { dayNote:'', eveningNote:'', transfers:[] };
+  return state.dailyData[date];
+}
+
+/* ====================================================
+   4. 날짜 유틸
+   ==================================================== */
+const WEEKDAYS = ['일','월','화','수','목','금','토'];
+function formatDateKorean(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const wd = WEEKDAYS[new Date(y,m-1,d).getDay()];
+  return `${y}.${m}.${d}. ${wd}요일 (6AM기준)`;
+}
+function formatDateShort(dateStr) {
+  const [y,m,d] = dateStr.split('-').map(Number);
+  return `${y}.${m}.${d}.`;
+}
+
+/* ====================================================
+   5. 집계 로직
+   ==================================================== */
+function countCurrent(ward, type) {
+  return state.patients.filter(p =>
+    p.status === '재원' &&
+    getRoomWard(p.room) === ward &&
+    getRoomType(p.room) === type
+  ).length;
+}
+function getRoomWard(room) { return ROOM_DATA[room] ? ROOM_DATA[room].ward : ''; }
+function getRoomType(room) { return ROOM_DATA[room] ? ROOM_DATA[room].type : ''; }
+function countAdmitToday(ward, admitType) {
+  return state.patients.filter(p =>
+    p.admitDate === state.currentDate &&
+    getRoomWard(p.room) === ward &&
+    p.admitType === admitType
+  ).length;
+}
+function countDischargeToday(ward) {
+  return state.patients.filter(p =>
+    p.dischargeDate === state.currentDate &&
+    getRoomWard(p.dischargeRoom || p.room) === ward
+  ).length;
+}
+function countStay(ward) {
+  return state.patients.filter(p =>
+    p.status === '재원' && getRoomWard(p.room) === ward
+  ).length;
+}
+
+/* ====================================================
+   6. 렌더링: 집계 표
+   ==================================================== */
+function renderSummary() {
+  const tbody = document.getElementById('summaryBody');
+  const rows = [];
+  const totals = { beds:0, newAdmit:0, readmit:0, disch:0, stay:0 };
+  const typeTotals = {};
+  ROOM_TYPES.forEach(t => { typeTotals[t] = 0; });
+
+  WARDS.forEach(ward => {
+    const beds = WARD_BEDS[ward];
+    const newA = countAdmitToday(ward, '신환');
+    const reA  = countAdmitToday(ward, '재입원');
+    const disch = countDischargeToday(ward);
+    const stay  = countStay(ward);
+    totals.beds += beds; totals.newAdmit += newA; totals.readmit += reA;
+    totals.disch += disch; totals.stay += stay;
+
+    let typeCells = '';
+    ROOM_TYPES.forEach(t => {
+      const cnt = countCurrent(ward, t);
+      typeTotals[t] = (typeTotals[t]||0) + cnt;
+      typeCells += `<td>${cnt > 0 ? cnt : ''}</td>`;
+    });
+    rows.push(`<tr>
+      <td class="ward-label">${ward}</td>
+      <td>${beds}</td>
+      <td>${newA > 0 ? newA : ''}</td>
+      <td>${reA > 0 ? reA : ''}</td>
+      <td>${disch > 0 ? disch : ''}</td>
+      ${typeCells}
+      <td><strong>${stay}</strong></td>
+    </tr>`);
+  });
+
+  // 합계 행
+  let totalTypeCells = ROOM_TYPES.map(t => `<td>${typeTotals[t] > 0 ? typeTotals[t] : ''}</td>`).join('');
+  rows.push(`<tr class="total-row">
+    <td>합계</td>
+    <td>${totals.beds}</td>
+    <td>${totals.newAdmit > 0 ? totals.newAdmit : ''}</td>
+    <td>${totals.readmit > 0 ? totals.readmit : ''}</td>
+    <td>${totals.disch > 0 ? totals.disch : ''}</td>
+    ${totalTypeCells}
+    <td><strong>${totals.stay}</strong></td>
+  </tr>`);
+
+  tbody.innerHTML = rows.join('');
+}
+
+/* ====================================================
+   7. 렌더링: 입퇴원 목록
+   ==================================================== */
+function renderAdmitList() {
+  const tbody = document.getElementById('admitListBody');
+  const pts = state.patients.filter(p => p.admitDate === state.currentDate);
+  if (pts.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">입원 환자 없음</td></tr>';
+    return;
+  }
+  pts.sort((a,b) => (a.room||'').localeCompare(b.room||''));
+  tbody.innerHTML = pts.map(p => `<tr>
+    <td>${p.room}</td>
+    <td>${esc(p.name)}</td>
+    <td>${esc(p.gender)}/${p.age||''}</td>
+    <td>${esc(p.diagnosis)}</td>
+    <td>${esc(p.hospital)}</td>
+    <td>${esc(p.dept)}</td>
+    <td>${p.admitType === '신환' ? '신환' : '재입원'}</td>
+    <td>${esc(p.notes)}</td>
+  </tr>`).join('');
+}
+
+function renderDischargeList() {
+  const tbody = document.getElementById('dischargeListBody');
+  const pts = state.patients.filter(p => p.dischargeDate === state.currentDate);
+  if (pts.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">퇴원 환자 없음</td></tr>';
+    return;
+  }
+  pts.sort((a,b) => (a.dischargeRoom||a.room||'').localeCompare(b.dischargeRoom||b.room||''));
+  tbody.innerHTML = pts.map(p => `<tr>
+    <td>${p.dischargeRoom || p.room}</td>
+    <td>${esc(p.name)}</td>
+    <td>${esc(p.gender)}/${p.age||''}</td>
+    <td>${esc(p.diagnosis)}</td>
+    <td>${esc(p.hospital)}</td>
+    <td>${esc(p.dept)}</td>
+    <td>${esc(p.notes)}</td>
+  </tr>`).join('');
+}
+
+/* ====================================================
+   8. 렌더링: 특이사항
+   ==================================================== */
+function renderNotes() {
+  const dd = getDailyData(state.currentDate);
+  const transfers = dd.transfers || [];
+  const xferText = transfers.map(t =>
+    `${t.fromRoom} ${esc(t.name)} ———> ${t.toRoom}`
+  ).join('\n');
+
+  const dayNote   = (xferText ? xferText + '\n' : '') + (dd.dayNote || '');
+  const eveningNote = dd.eveningNote || '';
+
+  document.getElementById('dayNoteInput').value    = dd.dayNote || '';
+  document.getElementById('eveningNoteInput').value = dd.eveningNote || '';
+  document.getElementById('dayNotePrint').textContent    = dayNote;
+  document.getElementById('eveningNotePrint').textContent = eveningNote;
+}
+
+/* ====================================================
+   9. 렌더링: 날짜
+   ==================================================== */
+function renderDateDisplay() {
+  const txt = formatDateKorean(state.currentDate);
+  const el = document.getElementById('reportDateDisplay');
+  if (el) el.textContent = txt;
+  const sc = document.getElementById('dateDisplayScreen');
+  if (sc) sc.textContent = txt;
+  const dp = document.getElementById('datePickerInput');
+  if (dp) dp.value = state.currentDate;
+}
+
+/* ====================================================
+   10. 렌더링: 환자 목록 (환자 관리 탭)
+   ==================================================== */
+function renderPatientList() {
+  const nameFilter   = (document.getElementById('filterName')?.value || '').toLowerCase();
+  const wardFilter   = document.getElementById('filterWard')?.value || '';
+  const statusFilter = document.getElementById('filterStatus')?.value;
+  const status = statusFilter !== undefined ? statusFilter : '재원';
+
+  let pts = state.patients.filter(p => {
+    if (status && p.status !== status) return false;
+    if (wardFilter && getRoomWard(p.room) !== wardFilter) return false;
+    if (nameFilter && !(p.name||'').toLowerCase().includes(nameFilter)) return false;
+    return true;
+  });
+  pts.sort((a,b) => (a.room||'').localeCompare(b.room||''));
+
+  const tbody = document.getElementById('patientListBody');
+  if (!tbody) return;
+  if (pts.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;color:#999;padding:16px">환자 없음</td></tr>';
+    return;
+  }
+  tbody.innerHTML = pts.map(p => {
+    const ward = getRoomWard(p.room) || '?';
+    const badge = p.status === '재원'
+      ? `<span class="badge badge-stay">재원</span>`
+      : `<span class="badge badge-discharged">퇴원</span>`;
+    const admitBadge = p.admitType === '신환'
+      ? `<span class="badge badge-new">신환</span>`
+      : `<span class="badge badge-readmit">재입원</span>`;
+    const actions = p.status === '재원'
+      ? `<button class="btn btn-sm btn-outline" onclick="openEditModal('${p.id}')">수정</button>
+         <button class="btn btn-sm btn-danger" onclick="openDischargeModal('${p.id}')">퇴원</button>`
+      : `<button class="btn btn-sm btn-outline" onclick="openEditModal('${p.id}')">수정</button>
+         <button class="btn btn-sm btn-secondary" onclick="reAdmit('${p.id}')">재입원</button>`;
+    return `<tr>
+      <td>${p.room}</td>
+      <td>${ward}</td>
+      <td><strong>${esc(p.name)}</strong></td>
+      <td>${esc(p.gender)}/${p.age||''}</td>
+      <td>${esc(p.diagnosis)}</td>
+      <td>${esc(p.hospital)}</td>
+      <td>${esc(p.dept)}</td>
+      <td>${admitBadge}</td>
+      <td>${p.admitDate||''}</td>
+      <td>${badge}</td>
+      <td>${actions}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ====================================================
+   11. 병실 선택 드롭다운 채우기
+   ==================================================== */
+function populateRoomSelects() {
+  const selects = ['f_room', 't_toRoom', 'em_room'];
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— 병실 선택 —</option>';
+    SORTED_ROOMS.forEach(r => {
+      const rd = ROOM_DATA[r];
+      const opt = document.createElement('option');
+      opt.value = r;
+      opt.textContent = `${r} (${rd.ward} · ${rd.type} · ${rd.capacity}인)`;
+      sel.appendChild(opt);
+    });
+    if (cur) sel.value = cur;
+  });
+}
+
+function populateTransferPatientSelect() {
+  const sel = document.getElementById('t_patient');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— 환자 선택 —</option>';
+  state.patients.filter(p => p.status === '재원')
+    .sort((a,b) => (a.room||'').localeCompare(b.room||''))
+    .forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.room} ${p.name}`;
+      sel.appendChild(opt);
+    });
+}
+
+/* ====================================================
+   12. 병실 정보 탭 렌더링
+   ==================================================== */
+function renderRoomInfo() {
+  const tbody = document.getElementById('roomInfoBody');
+  if (!tbody) return;
+  tbody.innerHTML = SORTED_ROOMS.map(r => {
+    const d = ROOM_DATA[r];
+    return `<tr><td>${r}</td><td>${d.type}</td><td>${d.ward}</td><td>${d.capacity}인</td></tr>`;
+  }).join('');
+}
+
+/* ====================================================
+   13. 환자 입원 등록
+   ==================================================== */
+function admitPatient() {
+  const room    = document.getElementById('f_room').value;
+  const name    = document.getElementById('f_name').value.trim();
+  const gender  = document.getElementById('f_gender').value;
+  const age     = parseInt(document.getElementById('f_age').value) || 0;
+  const diag    = document.getElementById('f_diagnosis').value.trim();
+  const hosp    = document.getElementById('f_hospital').value.trim();
+  const dept    = document.getElementById('f_dept').value.trim();
+  const atype   = document.getElementById('f_admitType').value;
+  const adate   = document.getElementById('f_admitDate').value || todayStr();
+  const notes   = document.getElementById('f_notes').value.trim();
+
+  if (!room) { showAlert('admitAlert', '병실번호를 선택해주세요.', 'warning'); return; }
+  if (!name) { showAlert('admitAlert', '환자명을 입력해주세요.', 'warning'); return; }
+
+  // 동일 병실 중복 체크 (1인실은 1명만)
+  const cap = ROOM_DATA[room]?.capacity || 1;
+  const current = state.patients.filter(p => p.status === '재원' && p.room === room).length;
+  if (current >= cap) {
+    showAlert('admitAlert', `병실 ${room}의 정원(${cap}인)이 초과되었습니다.`, 'warning');
+    return;
+  }
+
+  const patient = { id: uid(), room, name, gender, age, diagnosis: diag,
+    hospital: hosp, dept, admitType: atype, admitDate: adate,
+    status: '재원', dischargeDate: null, dischargeRoom: null, notes };
+  state.patients.push(patient);
+  saveState();
+  renderAll();
+  clearAdmitForm();
+  showAlert('admitAlert', `${name} 환자가 ${room}호에 입원 등록되었습니다.`, 'success');
+}
+
+function clearAdmitForm() {
+  ['f_room','f_name','f_gender','f_age','f_diagnosis','f_hospital','f_dept','f_admitType','f_notes']
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (el.tagName === 'SELECT') el.selectedIndex = 0;
+      else el.value = '';
+    });
+  document.getElementById('f_admitDate').value = todayStr();
+}
+
+/* ====================================================
+   14. 퇴원 모달
+   ==================================================== */
+function openDischargeModal(pid) {
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+  document.getElementById('dm_patientId').value = pid;
+  document.getElementById('dm_patientInfo').textContent = `${p.room}호 ${p.name} (${p.gender}/${p.age})`;
+  document.getElementById('dm_dischargeDate').value = todayStr();
+  openModal('dischargeModal');
+}
+function confirmDischarge() {
+  const pid = document.getElementById('dm_patientId').value;
+  const ddate = document.getElementById('dm_dischargeDate').value || todayStr();
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+  p.dischargeRoom = p.room;
+  p.status = '퇴원';
+  p.dischargeDate = ddate;
+  saveState();
+  renderAll();
+  closeModal('dischargeModal');
+}
+
+/* ====================================================
+   15. 환자 수정 모달
+   ==================================================== */
+function openEditModal(pid) {
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+  document.getElementById('em_id').value = pid;
+  populateRoomSelects();
+  const fields = { em_room:'room', em_name:'name', em_gender:'gender', em_age:'age',
+    em_diagnosis:'diagnosis', em_hospital:'hospital', em_dept:'dept',
+    em_admitType:'admitType', em_admitDate:'admitDate', em_notes:'notes' };
+  for (const [fid, key] of Object.entries(fields)) {
+    const el = document.getElementById(fid);
+    if (el) el.value = p[key] || '';
+  }
+  openModal('editModal');
+}
+function saveEdit() {
+  const pid = document.getElementById('em_id').value;
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+  p.room       = document.getElementById('em_room').value || p.room;
+  p.name       = document.getElementById('em_name').value.trim() || p.name;
+  p.gender     = document.getElementById('em_gender').value;
+  p.age        = parseInt(document.getElementById('em_age').value) || p.age;
+  p.diagnosis  = document.getElementById('em_diagnosis').value.trim();
+  p.hospital   = document.getElementById('em_hospital').value.trim();
+  p.dept       = document.getElementById('em_dept').value.trim();
+  p.admitType  = document.getElementById('em_admitType').value;
+  p.admitDate  = document.getElementById('em_admitDate').value || p.admitDate;
+  p.notes      = document.getElementById('em_notes').value.trim();
+  saveState();
+  renderAll();
+  closeModal('editModal');
+}
+
+/* ====================================================
+   16. 재입원 처리
+   ==================================================== */
+function reAdmit(pid) {
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+  const newId = uid();
+  const np = { ...p, id: newId, status: '재원', admitType: '재입원',
+    admitDate: todayStr(), dischargeDate: null, dischargeRoom: null };
+  state.patients.push(np);
+  saveState();
+  renderAll();
+}
+
+/* ====================================================
+   17. 병실 이동
+   ==================================================== */
+function transferPatient() {
+  const pid    = document.getElementById('t_patient').value;
+  const toRoom = document.getElementById('t_toRoom').value;
+  const memo   = document.getElementById('t_memo').value.trim();
+
+  if (!pid)    { showAlert('transferAlert', '환자를 선택해주세요.', 'warning'); return; }
+  if (!toRoom) { showAlert('transferAlert', '이동할 병실을 선택해주세요.', 'warning'); return; }
+
+  const p = state.patients.find(x => x.id === pid);
+  if (!p) return;
+  if (p.room === toRoom) { showAlert('transferAlert', '현재 병실과 동일합니다.', 'warning'); return; }
+
+  const fromRoom = p.room;
+  const dd = getDailyData(state.currentDate);
+  dd.transfers = dd.transfers || [];
+  const entry = { name: p.name, fromRoom, toRoom };
+  if (memo) entry.memo = memo;
+  dd.transfers.push(entry);
+
+  p.room = toRoom;
+  saveState();
+  renderAll();
+  populateTransferPatientSelect();
+  document.getElementById('t_patient').value = '';
+  document.getElementById('t_toRoom').value = '';
+  document.getElementById('t_memo').value = '';
+  showAlert('transferAlert',
+    `${p.name} 환자를 ${fromRoom} → ${toRoom}으로 이동했습니다.`, 'success');
+}
+
+/* ====================================================
+   18. 특이사항 저장
+   ==================================================== */
+function saveNoteDebounced(field, value) {
+  clearTimeout(_noteTimer);
+  _noteTimer = setTimeout(() => {
+    const dd = getDailyData(state.currentDate);
+    if (field === 'day')     dd.dayNote = value;
+    if (field === 'evening') dd.eveningNote = value;
+    saveState();
+    renderNotes();
+  }, 300);
+}
+
+/* ====================================================
+   19. 날짜 변경
+   ==================================================== */
+function changeDate(val) {
+  if (!val) return;
+  state.currentDate = val;
+  saveState();
+  renderAll();
+}
+function setToday() {
+  state.currentDate = todayStr();
+  saveState();
+  renderAll();
+}
+
+/* ====================================================
+   20. 탭 전환
+   ==================================================== */
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  const names = ['report','patients','settings'];
+  const idx = names.indexOf(name);
+  if (btns[idx]) btns[idx].classList.add('active');
+  if (name === 'patients') { populateRoomSelects(); populateTransferPatientSelect(); renderPatientList(); }
+  if (name === 'settings') renderRoomInfo();
+}
+
+/* ====================================================
+   21. 모달 유틸
+   ==================================================== */
+function openModal(id)  { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+document.addEventListener('click', e => {
+  document.querySelectorAll('.modal-overlay.active').forEach(m => {
+    if (e.target === m) m.classList.remove('active');
+  });
+});
+
+/* ====================================================
+   22. 알림 유틸
+   ==================================================== */
+function showAlert(containerId, msg, type) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<div class="alert alert-${type === 'warning' ? 'warning' : 'success'}">${esc(msg)}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+/* ====================================================
+   23. 내보내기 / 가져오기
+   ==================================================== */
+function exportData() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `nursing_data_${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.patients) throw new Error('잘못된 형식');
+      if (!confirm('현재 데이터를 불러온 파일로 교체하시겠습니까?')) return;
+      state = imported;
+      if (!state.dailyData) state.dailyData = {};
+      saveState();
+      renderAll();
+      alert('데이터를 성공적으로 가져왔습니다.');
+    } catch(err) {
+      alert('파일 형식이 올바르지 않습니다: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+function confirmClearAll() {
+  if (!confirm('모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+  state = { currentDate: todayStr(), patients: [], dailyData: {} };
+  saveState();
+  renderAll();
+  alert('데이터가 삭제되었습니다.');
+}
+
+/* ====================================================
+   24. 전체 렌더
+   ==================================================== */
+function renderAll() {
+  renderDateDisplay();
+  renderSummary();
+  renderAdmitList();
+  renderDischargeList();
+  renderNotes();
+  renderPatientList();
+}
+
+/* ====================================================
+   25. 초기화
+   ==================================================== */
+(function init() {
+  loadState();
+  populateRoomSelects();
+  document.getElementById('f_admitDate').value = state.currentDate;
+  renderAll();
+})();
+</script>
+</body>
+</html>
